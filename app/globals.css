@@ -29,6 +29,10 @@ html[data-theme='light'] [class*='bg-zinc-950'] { background-color: #fffdfd !imp
 html[data-theme='light'] [class*='bg-zinc-900'] { background-color: #fff4f5 !important; }
 html[data-theme='light'] [class*='bg-zinc-800'] { background-color: #f4e8ea !important; }
 html[data-theme='light'] [class*='bg-zinc-700'] { background-color: #eadadd !important; }
+html[data-theme='light'] [class*='bg-red-950'],
+html[data-theme='light'] [class*='bg-rose-950'],
+html[data-theme='light'] [class*='bg-pink-950'],
+html[data-theme='light'] [class*='bg-purple-950'] { background-color: #fff0f2 !important; }
 html[data-theme='light'] [class*='bg-gradient'] {
   background-image: none !important;
   background-color: #fff4f5 !important;
@@ -39,8 +43,21 @@ html[data-theme='light'] .text-zinc-200 { color: #27272a !important; }
 html[data-theme='light'] .text-zinc-300,
 html[data-theme='light'] .text-zinc-400,
 html[data-theme='light'] .text-zinc-500 { color: #52525b !important; }
+html[data-theme='light'] [class*='text-rose-'],
+html[data-theme='light'] [class*='text-pink-'] { color: #9d174d !important; }
+html[data-theme='light'] [class*='text-red-'] { color: #b91c1c !important; }
+html[data-theme='light'] [class*='text-amber-'],
+html[data-theme='light'] [class*='text-orange-'] { color: #92400e !important; }
+html[data-theme='light'] [class*='text-purple-'] { color: #6b21a8 !important; }
+html[data-theme='light'] [class*='text-emerald-'],
+html[data-theme='light'] [class*='text-green-'] { color: #047857 !important; }
+html[data-theme='light'] [class*='text-sky-'],
+html[data-theme='light'] [class*='text-blue-'] { color: #1d4ed8 !important; }
 html[data-theme='light'] [class*='border-zinc-800'],
 html[data-theme='light'] [class*='border-zinc-700'] { border-color: #eadadd !important; }
+html[data-theme='light'] [class*='border-rose-'],
+html[data-theme='light'] [class*='border-pink-'],
+html[data-theme='light'] [class*='border-red-'] { border-color: #f3b7c1 !important; }
 html[data-theme='light'] .text-transparent {
   background-image: none !important;
   color: #9f1239 !important;
