@@ -155,6 +155,16 @@ create table if not exists public.reward_redemptions (
   status text not null default 'pending' check (status in ('pending', 'claimed', 'rejected'))
 );
 
+-- 10. SHARED APP STATE
+-- The UI contains richer structures than the original individual tables
+-- (multiple Bingo decks, editable dice decks, timer settings, etc.). Keeping
+-- one JSON document per couple means the complete experience stays synced.
+create table if not exists public.couple_state (
+  couple_id uuid primary key references public.couples(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Realtime publication enablement
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.couples;
@@ -173,6 +183,7 @@ alter table public.private_cards enable row level security;
 alter table public.fantasy_items enable row level security;
 alter table public.rewards enable row level security;
 alter table public.reward_redemptions enable row level security;
+alter table public.couple_state enable row level security;
 
 -- Secure membership helpers. Authenticated users can only access the couple
 -- space to which their profile belongs.
@@ -245,6 +256,7 @@ create policy "Members can access private cards" on public.private_cards for all
 create policy "Members can access fantasies" on public.fantasy_items for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 create policy "Members can access rewards" on public.rewards for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 create policy "Members can access redemptions" on public.reward_redemptions for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access couple state" on public.couple_state for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 
 -- =========================================================
 -- SEED DATA INSERTIONS (Gautam & Shilpi)

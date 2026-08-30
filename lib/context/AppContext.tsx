@@ -95,6 +95,8 @@ interface AppContextType {
   resetHeatMeter: () => void;
   disguiseMode: boolean;
   setDisguiseMode: (val: boolean) => void;
+  privateSettings: PrivateSettings;
+  updatePrivateSettings: (settings: Partial<PrivateSettings>) => void;
 
   // Rewards
   rewards: Reward[];
@@ -127,6 +129,37 @@ const DEFAULT_COUPLE: Couple = {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+type CloudState = {
+  messages?: Message[];
+  bingoCards?: BingoCard[];
+  activeCardId?: string;
+  truthOrDareCards?: TruthOrDareCard[];
+  diceDecks?: DiceDeck[];
+  activeDiceDeckId?: string;
+  challenges?: Challenge[];
+  dateIdeas?: DateIdea[];
+  privateCards?: PrivateCard[];
+  fantasyItems?: FantasyItem[];
+  heatMeter?: HeatMeter;
+  rewards?: Reward[];
+  redemptions?: RewardRedemption[];
+  privateSettings?: PrivateSettings;
+};
+
+type PrivateSettings = {
+  pleasureDice: { actions: string[]; bodyParts: string[]; modifiers: string[] };
+  teaseTimerDurations: number[];
+};
+
+const DEFAULT_PRIVATE_SETTINGS: PrivateSettings = {
+  pleasureDice: {
+    actions: ['Kiss', 'Slow Nibble', 'Warm Massage', 'Feather Touch', 'Sensual Lick', 'Firm Caress'],
+    bodyParts: ['Neck & Collarbone', 'Lips & Chin', 'Inner Thighs', 'Spine & Lower Back', 'Shoulders', 'Ears & Jaw'],
+    modifiers: ['For 2 Minutes', 'In Pure Candlelight', 'Blindfolded', 'With Ice Cube / Warmth', 'Passionately', 'Whispering in Ear'],
+  },
+  teaseTimerDurations: [30, 60, 120, 180, 300, 600],
+};
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUserRole, setCurrentUserRole] = useState<'partner1' | 'partner2'>('partner1');
   const [couple, setCouple] = useState<Couple>(DEFAULT_COUPLE);
@@ -154,11 +187,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: 'claimed',
     },
   ]);
+  const [privateSettings, setPrivateSettings] = useState<PrivateSettings>(DEFAULT_PRIVATE_SETTINGS);
 
   const [isPrivateUnlocked, setIsPrivateUnlocked] = useState(false);
   const [disguiseMode, setDisguiseMode] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'love' | 'success' | 'spicy' | 'info' } | null>(null);
   const [isCloudConnected, setIsCloudConnected] = useState(false);
+  const [isLocalHydrated, setIsLocalHydrated] = useState(false);
+  const [cloudCoupleId, setCloudCoupleId] = useState<string | null>(null);
+  const [isCloudStateReady, setIsCloudStateReady] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -211,6 +248,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedHeatMeter = localStorage.getItem('forever_heat_meter');
       if (savedHeatMeter) setHeatMeter(JSON.parse(savedHeatMeter));
 
+      const savedPrivateSettings = localStorage.getItem('forever_private_settings');
+      if (savedPrivateSettings) {
+        setPrivateSettings(JSON.parse(savedPrivateSettings));
+      } else {
+        // Bring forward settings from the earlier device-only Private Zone.
+        const savedDice = localStorage.getItem('forever_pleasure_dice');
+        const savedDurations = localStorage.getItem('forever_tease_timer_durations');
+        const dice = savedDice ? JSON.parse(savedDice) : DEFAULT_PRIVATE_SETTINGS.pleasureDice;
+        const durations = savedDurations ? JSON.parse(savedDurations) : DEFAULT_PRIVATE_SETTINGS.teaseTimerDurations;
+        if (Array.isArray(dice.actions) && Array.isArray(dice.bodyParts) && Array.isArray(dice.modifiers) && Array.isArray(durations)) {
+          const migrated = { pleasureDice: dice, teaseTimerDurations: durations };
+          setPrivateSettings(migrated);
+          localStorage.setItem('forever_private_settings', JSON.stringify(migrated));
+        }
+      }
+
       const savedBingo = localStorage.getItem('forever_bingo_cards');
       if (savedBingo) {
         const parsed = JSON.parse(savedBingo);
@@ -260,6 +313,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (shouldResetProgress) localStorage.setItem('forever_progress_reset_v1', 'done');
     } catch {
       // Ignore storage read errors
+    } finally {
+      setIsLocalHydrated(true);
     }
   }, []);
 
@@ -305,14 +360,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setCouple(nextCouple);
     saveState('forever_couple', nextCouple);
+    setCloudCoupleId(profile.couple_id);
     if (profile.role === 'partner1' || profile.role === 'partner2') {
       setCurrentUserRole(profile.role);
       localStorage.setItem('forever_user_role', profile.role);
     }
+
+    const { data: savedState } = await supabase
+      .from('couple_state')
+      .select('data')
+      .eq('couple_id', profile.couple_id)
+      .maybeSingle();
+    const cloudState = savedState?.data as CloudState | undefined;
+    if (cloudState) {
+      if (Array.isArray(cloudState.messages)) setMessages(cloudState.messages);
+      if (Array.isArray(cloudState.bingoCards)) setBingoCards(cloudState.bingoCards);
+      if (typeof cloudState.activeCardId === 'string') setActiveCardIdState(cloudState.activeCardId);
+      if (Array.isArray(cloudState.truthOrDareCards)) setTruthOrDareCards(cloudState.truthOrDareCards);
+      if (Array.isArray(cloudState.diceDecks)) setDiceDecks(cloudState.diceDecks);
+      if (typeof cloudState.activeDiceDeckId === 'string') setActiveDiceDeckIdState(cloudState.activeDiceDeckId);
+      if (Array.isArray(cloudState.challenges)) setChallenges(cloudState.challenges);
+      if (Array.isArray(cloudState.dateIdeas)) setDateIdeas(cloudState.dateIdeas);
+      if (Array.isArray(cloudState.privateCards)) setPrivateCards(cloudState.privateCards);
+      if (Array.isArray(cloudState.fantasyItems)) setFantasyItems(cloudState.fantasyItems);
+      if (cloudState.heatMeter && typeof cloudState.heatMeter === 'object') setHeatMeter(cloudState.heatMeter);
+      if (Array.isArray(cloudState.rewards)) setRewards(cloudState.rewards);
+      if (Array.isArray(cloudState.redemptions)) setRedemptions(cloudState.redemptions);
+      if (cloudState.privateSettings && typeof cloudState.privateSettings === 'object') setPrivateSettings(cloudState.privateSettings);
+    }
+    setIsCloudStateReady(true);
   }, [saveState]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !isLocalHydrated) return;
     const supabase = createBrowserSupabaseClient();
     if (!supabase) return;
     loadCloudCouple();
@@ -320,7 +400,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') loadCloudCouple();
     });
     return () => subscription.unsubscribe();
-  }, [loadCloudCouple]);
+  }, [isLocalHydrated, loadCloudCouple]);
+
+  // Keep the full shared experience in one per-couple Supabase record. This
+  // preserves the app's existing data shapes while making every feature work
+  // across browsers and devices.
+  useEffect(() => {
+    if (!isCloudStateReady || !cloudCoupleId) return;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const state: CloudState = {
+      messages,
+      bingoCards,
+      activeCardId,
+      truthOrDareCards,
+      diceDecks,
+      activeDiceDeckId,
+      challenges,
+      dateIdeas,
+      privateCards,
+      fantasyItems,
+      heatMeter,
+      rewards,
+      redemptions,
+      privateSettings,
+    };
+    const timeout = window.setTimeout(() => {
+      void supabase.from('couple_state').upsert({
+        couple_id: cloudCoupleId,
+        data: state,
+        updated_at: new Date().toISOString(),
+      });
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [
+    activeCardId,
+    activeDiceDeckId,
+    bingoCards,
+    challenges,
+    cloudCoupleId,
+    dateIdeas,
+    diceDecks,
+    fantasyItems,
+    heatMeter,
+    isCloudStateReady,
+    messages,
+    privateCards,
+    privateSettings,
+    redemptions,
+    rewards,
+    truthOrDareCards,
+  ]);
 
   // Toast notification
   const showToast = useCallback((message: string, type: 'love' | 'success' | 'spicy' | 'info' = 'love') => {
@@ -376,6 +506,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       const updated = { ...prev, points: newPoints };
       saveState('forever_couple', updated);
+      const supabase = createBrowserSupabaseClient();
+      if (supabase && cloudCoupleId) {
+        void supabase
+          .from('couples')
+          .update({ partner1_points: newPoints.partner1, partner2_points: newPoints.partner2 })
+          .eq('id', cloudCoupleId);
+      }
+      return updated;
+    });
+  };
+
+  const updatePrivateSettings = (settings: Partial<PrivateSettings>) => {
+    setPrivateSettings((previous) => {
+      const updated = { ...previous, ...settings };
+      saveState('forever_private_settings', updated);
       return updated;
     });
   };
@@ -969,6 +1114,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         resetHeatMeter,
         disguiseMode,
         setDisguiseMode,
+        privateSettings,
+        updatePrivateSettings,
         rewards,
         redemptions,
         redeemReward,

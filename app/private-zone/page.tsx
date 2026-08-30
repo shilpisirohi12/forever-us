@@ -38,6 +38,8 @@ export default function PrivateZonePage() {
     resetHeatMeter,
     disguiseMode,
     setDisguiseMode,
+    privateSettings,
+    updatePrivateSettings,
     showToast,
   } = useApp();
 
@@ -68,32 +70,18 @@ export default function PrivateZonePage() {
   const [showTeaseTimerEditor, setShowTeaseTimerEditor] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('forever_pleasure_dice');
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed.actions) && parsed.actions.length === 6) setActions(parsed.actions);
-      if (Array.isArray(parsed.bodyParts) && parsed.bodyParts.length === 6) setBodyParts(parsed.bodyParts);
-      if (Array.isArray(parsed.modifiers) && parsed.modifiers.length === 6) setModifiers(parsed.modifiers);
-    } catch {
-      // Ignore unavailable or invalid saved dice settings.
+    const { pleasureDice, teaseTimerDurations } = privateSettings;
+    if (pleasureDice.actions.length === 6 && pleasureDice.bodyParts.length === 6 && pleasureDice.modifiers.length === 6) {
+      setActions(pleasureDice.actions);
+      setBodyParts(pleasureDice.bodyParts);
+      setModifiers(pleasureDice.modifiers);
     }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('forever_tease_timer_durations');
-      if (!saved) return;
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length === 6 && parsed.every((duration) => Number.isInteger(duration) && duration >= 5 && duration <= 3600)) {
-        setTeaseDurations(parsed);
-        setTeaseDuration(parsed[0]);
-        setTeaseRemaining(parsed[0]);
-      }
-    } catch {
-      // Ignore unavailable or invalid timer settings.
+    if (teaseTimerDurations.length === 6 && teaseTimerDurations.every((duration) => Number.isInteger(duration) && duration >= 5 && duration <= 3600)) {
+      setTeaseDurations(teaseTimerDurations);
+      setTeaseDuration(teaseTimerDurations[0]);
+      setTeaseRemaining(teaseTimerDurations[0]);
     }
-  }, []);
+  }, [privateSettings]);
 
   useEffect(() => {
     if (!isTeaseTimerRunning) return;
@@ -164,7 +152,7 @@ export default function PrivateZonePage() {
     setDiceAction(nextActions[0]);
     setDiceBody(nextBodyParts[0]);
     setDiceMod(nextModifiers[0]);
-    localStorage.setItem('forever_pleasure_dice', JSON.stringify({ actions: nextActions, bodyParts: nextBodyParts, modifiers: nextModifiers }));
+    updatePrivateSettings({ pleasureDice: { actions: nextActions, bodyParts: nextBodyParts, modifiers: nextModifiers } });
     setShowDiceEditor(false);
     showToast('Pleasure Dice updated!', 'success');
   };
@@ -192,7 +180,7 @@ export default function PrivateZonePage() {
     setTeaseDuration(durations[0]);
     setTeaseRemaining(durations[0]);
     setIsTeaseTimerRunning(false);
-    localStorage.setItem('forever_tease_timer_durations', JSON.stringify(durations));
+    updatePrivateSettings({ teaseTimerDurations: durations });
     setShowTeaseTimerEditor(false);
     showToast('Tease Timer choices updated!', 'success');
   };
