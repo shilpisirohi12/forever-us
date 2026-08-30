@@ -122,9 +122,14 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     event.preventDefault();
     const supabase = createBrowserSupabaseClient();
     if (!supabase || !code.trim()) return;
+    const expectedName = role === 'partner1' ? 'Gautam' : 'Shilpi';
+    if (name.trim().toLocaleLowerCase() !== expectedName.toLocaleLowerCase()) {
+      setMessage(`${role === 'partner1' ? 'Partner 1' : 'Partner 2'} must enter the name ${expectedName}.`);
+      return;
+    }
     setSubmitting(true);
     setMessage('');
-    const { error } = await supabase.rpc(mode === 'create' ? 'create_couple_space' : 'join_couple_space', {
+    const { data: coupleId, error } = await supabase.rpc(mode === 'create' ? 'create_couple_space' : 'join_couple_space', {
       requested_code: code.trim(),
       requested_role: role,
       display_name: name.trim() || null,
@@ -133,6 +138,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     if (error) {
       setMessage(error.message);
       return;
+    }
+    if (mode === 'create' && coupleId) {
+      await supabase.from('couples').update({ partner1_name: 'Gautam', partner2_name: 'Shilpi' }).eq('id', coupleId);
     }
     await loadMembership();
   };
@@ -175,9 +183,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         ) : (
           <form onSubmit={enroll} className="space-y-4">
             <div className="grid grid-cols-2 rounded-xl border border-zinc-700 bg-zinc-950 p-1 text-xs font-bold"><button type="button" onClick={() => setMode('join')} className={`rounded-lg py-2 ${mode === 'join' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Join partner</button><button type="button" onClick={() => setMode('create')} className={`rounded-lg py-2 ${mode === 'create' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Create space</button></div>
-            <label className="block text-xs font-bold text-zinc-300">Your name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder="Optional" /></label>
+            <label className="block text-xs font-bold text-zinc-300">Your name<input required value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder={role === 'partner1' ? 'Gautam' : 'Shilpi'} /></label>
             <label className="block text-xs font-bold text-zinc-300">{mode === 'create' ? 'Choose a private couple code' : 'Partner’s couple code'}<input required minLength={6} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 font-mono text-sm uppercase text-white outline-none focus:border-pink-400" placeholder="AT-LEAST-6-CHARS" /></label>
-            <label className="block text-xs font-bold text-zinc-300">I am<select value={role} onChange={(event) => setRole(event.target.value as 'partner1' | 'partner2')} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400"><option value="partner1">Partner 1</option><option value="partner2">Partner 2</option></select></label>
+            <label className="block text-xs font-bold text-zinc-300">I am<select value={role} onChange={(event) => setRole(event.target.value as 'partner1' | 'partner2')} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400"><option value="partner1">Gautam — Partner 1</option><option value="partner2">Shilpi — Partner 2</option></select></label>
             <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{mode === 'create' ? <Users className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}{submitting ? 'Saving…' : mode === 'create' ? 'Create our private space' : 'Join our private space'}</button>
           </form>
         )}
