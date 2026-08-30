@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Film,
   CheckCircle2,
+  Pencil,
 } from 'lucide-react';
 import { fireConfetti } from '@/components/Confetti';
 import { Reward } from '@/lib/types';
@@ -30,6 +31,7 @@ export default function RewardsPage() {
     redeemReward,
     updateRedemptionStatus,
     addCustomReward,
+    updateReward,
     addPoints,
     showToast,
   } = useApp();
@@ -37,12 +39,17 @@ export default function RewardsPage() {
   const [activeTab, setActiveTab] = useState<'shop' | 'redemptions'>('shop');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'intimacy' | 'service' | 'fun' | 'food'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
 
   // New reward form state
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCost, setNewCost] = useState(50);
   const [newCategory, setNewCategory] = useState<'intimacy' | 'service' | 'fun' | 'food'>('service');
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCost, setEditCost] = useState(50);
+  const [editCategory, setEditCategory] = useState<'intimacy' | 'service' | 'fun' | 'food'>('service');
 
   const myCoins = couple.points[user.role] || 0;
   const partnerRole = user.role === 'partner1' ? 'partner2' : 'partner1';
@@ -85,6 +92,27 @@ export default function RewardsPage() {
     setNewTitle('');
     setNewDesc('');
     setShowAddModal(false);
+  };
+
+  const openRewardEditor = (reward: Reward) => {
+    setEditingReward(reward);
+    setEditTitle(reward.title);
+    setEditDesc(reward.description);
+    setEditCost(reward.cost);
+    setEditCategory(reward.category);
+  };
+
+  const handleUpdateReward = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReward || !editTitle.trim() || !editDesc.trim() || editCost < 0) return;
+    updateReward(editingReward.id, {
+      title: editTitle.trim(),
+      description: editDesc.trim(),
+      cost: editCost,
+      category: editCategory,
+      icon: editingReward.icon,
+    });
+    setEditingReward(null);
   };
 
   const renderIcon = (category: string) => {
@@ -230,10 +258,13 @@ export default function RewardsPage() {
                       <div className="p-2.5 rounded-2xl bg-zinc-950 border border-zinc-800">
                         {renderIcon(reward.category)}
                       </div>
-                      <span className="flex items-center gap-1 text-sm font-black text-amber-400 font-mono">
-                        <Coins className="w-4 h-4 fill-amber-400" />
-                        {reward.cost}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => openRewardEditor(reward)} className="rounded-xl p-2 text-zinc-500 transition hover:bg-zinc-800 hover:text-amber-300" title="Edit coupon"><Pencil className="h-3.5 w-3.5" /></button>
+                        <span className="flex items-center gap-1 text-sm font-black text-amber-400 font-mono">
+                          <Coins className="w-4 h-4 fill-amber-400" />
+                          {reward.cost}
+                        </span>
+                      </div>
                     </div>
 
                     <div>
@@ -362,6 +393,22 @@ export default function RewardsPage() {
               ))
             )}
           </div>
+        </div>
+      )}
+
+      {/* Edit Coupon Modal */}
+      {editingReward && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <form onSubmit={handleUpdateReward} className="w-full max-w-sm space-y-4 rounded-3xl border border-amber-500/30 bg-zinc-900 p-5 shadow-2xl">
+            <h3 className="text-sm font-bold text-white">Edit Coupon</h3>
+            <div className="space-y-1"><label className="text-[11px] text-zinc-400">Title</label><input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs text-white outline-none focus:border-amber-500" /></div>
+            <div className="space-y-1"><label className="text-[11px] text-zinc-400">Description</label><textarea required rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2.5 text-xs text-white outline-none focus:border-amber-500" /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1"><label className="text-[11px] text-zinc-400">Cost (Coins)</label><input required type="number" min={0} step={5} value={editCost} onChange={(e) => setEditCost(Number(e.target.value))} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-xs text-white outline-none focus:border-amber-500" /></div>
+              <div className="space-y-1"><label className="text-[11px] text-zinc-400">Category</label><select value={editCategory} onChange={(e) => setEditCategory(e.target.value as typeof editCategory)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-xs text-white outline-none focus:border-amber-500"><option value="service">Service</option><option value="food">Food</option><option value="intimacy">Intimate</option><option value="fun">Fun</option></select></div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setEditingReward(null)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white">Cancel</button><button type="submit" className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-black hover:bg-amber-400">Save changes</button></div>
+          </form>
         </div>
       )}
 

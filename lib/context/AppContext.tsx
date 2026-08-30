@@ -103,6 +103,7 @@ interface AppContextType {
   redeemReward: (reward: Reward) => boolean;
   updateRedemptionStatus: (redemptionId: string, status: 'claimed' | 'rejected') => void;
   addCustomReward: (reward: Omit<Reward, 'id' | 'createdBy' | 'isCustom'>) => void;
+  updateReward: (rewardId: string, updates: Pick<Reward, 'title' | 'description' | 'cost' | 'category' | 'icon'>) => void;
 
   // Toast / Alert
   toast: { message: string; type: 'love' | 'success' | 'spicy' | 'info' } | null;
@@ -890,6 +891,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast('New Custom Love Coupon created!', 'success');
   };
 
+  const updateReward = (rewardId: string, updates: Pick<Reward, 'title' | 'description' | 'cost' | 'category' | 'icon'>) => {
+    setRewards((prev) => {
+      const updated = prev.map((reward) => reward.id === rewardId ? { ...reward, ...updates } : reward);
+      saveState('forever_rewards', updated);
+      return updated;
+    });
+    showToast('Coupon updated!', 'success');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -948,6 +958,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         redeemReward,
         updateRedemptionStatus,
         addCustomReward,
+        updateReward,
         toast,
         showToast,
       }}
