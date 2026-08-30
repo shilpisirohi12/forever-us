@@ -90,6 +90,7 @@ interface AppContextType {
   fantasyItems: FantasyItem[];
   toggleFantasyChoice: (id: string) => void;
   addCustomFantasy: (text: string) => void;
+  updateFantasyItem: (id: string, text: string) => void;
   heatMeter: HeatMeter;
   setHeatMeterChoice: (level: number) => void;
   resetHeatMeter: () => void;
@@ -1032,6 +1033,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast('Desire added anonymously. Waiting for partner!', 'spicy');
   };
 
+  const updateFantasyItem = (id: string, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setFantasyItems((prev) => {
+      const updated = prev.map((item) => item.id === id ? { ...item, text: trimmed } : item);
+      saveState('forever_fantasies', updated);
+      return updated;
+    });
+    showToast('Desire updated.', 'success');
+  };
+
   const setHeatMeterChoice = (level: number) => {
     if (!Number.isInteger(level) || level < 1 || level > 5) return;
     setHeatMeter((prev) => {
@@ -1182,6 +1194,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fantasyItems,
         toggleFantasyChoice,
         addCustomFantasy,
+        updateFantasyItem,
         heatMeter,
         setHeatMeterChoice,
         resetHeatMeter,

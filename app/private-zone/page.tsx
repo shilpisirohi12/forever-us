@@ -33,6 +33,7 @@ export default function PrivateZonePage() {
     fantasyItems,
     toggleFantasyChoice,
     addCustomFantasy,
+    updateFantasyItem,
     heatMeter,
     setHeatMeterChoice,
     resetHeatMeter,
@@ -102,6 +103,8 @@ export default function PrivateZonePage() {
   // Custom Fantasy Form
   const [showAddFantasy, setShowAddFantasy] = useState(false);
   const [newFantasyText, setNewFantasyText] = useState('');
+  const [editingFantasyId, setEditingFantasyId] = useState<string | null>(null);
+  const [editingFantasyText, setEditingFantasyText] = useState('');
 
   const partnerName = user.role === 'partner1' ? couple.partner2Name : couple.partner1Name;
   const myHeat = heatMeter[user.role];
@@ -197,6 +200,14 @@ export default function PrivateZonePage() {
     addCustomFantasy(newFantasyText.trim());
     setNewFantasyText('');
     setShowAddFantasy(false);
+  };
+
+  const handleEditFantasy = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFantasyId || !editingFantasyText.trim()) return;
+    updateFantasyItem(editingFantasyId, editingFantasyText);
+    setEditingFantasyId(null);
+    setEditingFantasyText('');
   };
 
   // 1. DISGUISE / PANIC SCREEN (If triggered by user to pretend it's a grocery / recipe note!)
@@ -712,16 +723,29 @@ export default function PrivateZonePage() {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => toggleFantasyChoice(item.id)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
-                        myVote
-                          ? 'bg-red-600 text-white shadow-md shadow-red-950/40'
-                          : 'bg-zinc-800 text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {myVote ? '✓ I Want This' : '+ Interested'}
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={`Edit ${item.text}`}
+                        onClick={() => {
+                          setEditingFantasyId(item.id);
+                          setEditingFantasyText(item.text);
+                        }}
+                        className="rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-zinc-400 transition hover:border-red-500/50 hover:text-white"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => toggleFantasyChoice(item.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 ${
+                          myVote
+                            ? 'bg-red-600 text-white shadow-md shadow-red-950/40'
+                            : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        {myVote ? '✓ I Want This' : '+ Interested'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -764,6 +788,28 @@ export default function PrivateZonePage() {
               >
                 Add Anonymous Desire
               </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {editingFantasyId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <form onSubmit={handleEditFantasy} className="w-full max-w-sm space-y-4 rounded-3xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl">
+            <div>
+              <h3 className="text-sm font-bold text-white">Edit Desire</h3>
+              <p className="mt-1 text-xs text-zinc-400">Editing keeps both partners&apos; existing votes.</p>
+            </div>
+            <textarea
+              value={editingFantasyText}
+              onChange={(e) => setEditingFantasyText(e.target.value)}
+              rows={3}
+              autoFocus
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-xs text-white focus:border-red-500 focus:outline-none"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setEditingFantasyId(null)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white">Cancel</button>
+              <button type="submit" className="rounded-xl bg-red-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-500">Save changes</button>
             </div>
           </form>
         </div>
