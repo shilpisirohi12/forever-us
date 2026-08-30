@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/AppContext';
-import { Heart, Coins, Users, Lock, Unlock, Sparkles, Inbox } from 'lucide-react';
+import { Heart, Coins, Users, Sparkles, Inbox } from 'lucide-react';
 import PairingModal from './PairingModal';
 
 export default function Header() {
-  const { user, couple, isPrivateUnlocked, lockPrivateZone } = useApp();
+  const { user, couple } = useApp();
   const [showPairModal, setShowPairModal] = useState(false);
 
   // Calculate days together
@@ -66,25 +66,6 @@ export default function Header() {
               <span>{user.avatar}</span>
               <span className="hidden md:inline">{user.name}</span>
             </div>
-
-            {/* Private Zone Lock Status */}
-            {isPrivateUnlocked ? (
-              <button
-                onClick={lockPrivateZone}
-                className="p-2 rounded-xl bg-red-950/60 border border-red-500/40 text-red-400 hover:bg-red-900/60 transition"
-                title="Lock Private Zone"
-              >
-                <Unlock className="w-4 h-4 text-red-400" />
-              </button>
-            ) : (
-              <Link
-                href="/private-zone"
-                className="p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-500/30 transition"
-                title="Private Zone (PIN Protected)"
-              >
-                <Lock className="w-4 h-4" />
-              </Link>
-            )}
 
             {/* Couple Settings / Pairing Modal */}
             <button

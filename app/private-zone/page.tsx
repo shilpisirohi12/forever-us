@@ -28,8 +28,6 @@ export default function PrivateZonePage() {
   const {
     user,
     couple,
-    isPrivateUnlocked,
-    unlockPrivateZone,
     lockPrivateZone,
     privateCards,
     fantasyItems,
@@ -123,25 +121,9 @@ export default function PrivateZonePage() {
   const partnerHeat = heatMeter[partnerRole];
   const isHeatRevealed = myHeat !== undefined && partnerHeat !== undefined;
 
-  // Handle PIN Unlock
-  const handlePinSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (unlockPrivateZone(pinInput)) {
-      setPinInput('');
-    }
-  };
-
-  const handleKeypadPress = (digit: string) => {
-    if (pinInput.length < 4) {
-      const nextPin = pinInput + digit;
-      setPinInput(nextPin);
-      if (nextPin.length === 4) {
-        if (unlockPrivateZone(nextPin)) {
-          setPinInput('');
-        }
-      }
-    }
-  };
+  // Kept only for the retired keypad markup below; Google authentication now gates access.
+  const handlePinSubmit = () => {};
+  const handleKeypadPress = (_digit: string) => {};
 
   const handleRollDice = () => {
     setIsRollingDice(true);
@@ -254,7 +236,7 @@ export default function PrivateZonePage() {
   }
 
   // 2. LOCKED SCREEN WITH 4-DIGIT PIN KEYPAD
-  if (!isPrivateUnlocked) {
+  if (false) {
     return (
       <div className="max-w-md mx-auto p-6 rounded-3xl bg-gradient-to-b from-red-950/40 via-zinc-950 to-zinc-950 border border-red-500/30 text-center space-y-6 shadow-2xl animate-fade-in">
         <div className="w-16 h-16 mx-auto rounded-3xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shadow-inner">

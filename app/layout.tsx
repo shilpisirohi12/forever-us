@@ -5,7 +5,6 @@ import { AppProvider } from "@/lib/context/AppContext";
 import Header from "@/components/Header";
 import Navigation from "@/components/Navigation";
 import Toast from "@/components/Toast";
-import PageAccessGate from "@/components/PageAccessGate";
 import AuthGate from "@/components/AuthGate";
 
 const geistSans = Geist({
@@ -54,9 +53,7 @@ export default function RootLayout({
               <Header />
               <Navigation />
             </div>
-            <main className="flex-1 pb-8 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6">
-              <PageAccessGate>{children}</PageAccessGate>
-            </main>
+            <main className="flex-1 pb-8 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6">{children}</main>
             <Toast />
           </AuthGate>
         </AppProvider>
