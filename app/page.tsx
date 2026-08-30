@@ -266,7 +266,7 @@ export default function HomePage() {
                 <Flame className="w-6 h-6" />
               </div>
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-950/60 text-red-300 border border-red-500/30">
-                PIN Locked 🔒
+                XXX Spicy 🔥
               </span>
             </div>
 
@@ -280,7 +280,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-red-400 group-hover:translate-x-1 transition">
-              <span>Unlock Secret Space</span>
+              <span>Explore Private Zone</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>
