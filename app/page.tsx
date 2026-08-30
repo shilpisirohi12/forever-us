@@ -15,8 +15,10 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { fireConfetti, fireHearts } from '@/components/Confetti';
+import { DAILY_LOVE_PROMPTS, getDailyLovePromptIndex } from '@/lib/data/dailyLovePrompts';
 
 const QUICK_SEND_GROUPS = [
   {
@@ -64,6 +66,7 @@ const QUICK_SEND_GROUPS = [
 export default function HomePage() {
   const { user, couple, sendMessage, challenges, bingoCards, rewards, dateIdeas, showToast } = useApp();
   const [sentQuickAction, setSentQuickAction] = useState<string | null>(null);
+  const [lovePromptIndex, setLovePromptIndex] = useState(() => getDailyLovePromptIndex());
 
   const daysTogether = Math.max(
     1,
@@ -77,6 +80,14 @@ export default function HomePage() {
   const activeChallengesCount = challenges.length;
   const partnerName = user.role === 'partner1' ? couple.partner2Name : couple.partner1Name;
   const partnerAvatar = user.role === 'partner1' ? couple.partner2Avatar : couple.partner1Avatar;
+  const lovePrompt = DAILY_LOVE_PROMPTS[lovePromptIndex];
+
+  const showAnotherLovePrompt = () => {
+    const alternatives = DAILY_LOVE_PROMPTS
+      .map((prompt, index) => ({ prompt, index }))
+      .filter(({ prompt, index }) => index !== lovePromptIndex && prompt.category !== lovePrompt.category);
+    setLovePromptIndex(alternatives[Math.floor(Math.random() * alternatives.length)].index);
+  };
 
   const handleQuickSend = (label: string, message: string) => {
     sendMessage(message);
@@ -307,16 +318,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Daily Love Prompt / Intimate Question */}
-      <section className="p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800 text-zinc-200">
-        <div className="flex items-center gap-2 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
-          <Sparkles className="w-4 h-4" />
-          <span>Daily Love Prompt</span>
+      {/* Daily Love Prompt */}
+      <section className="relative overflow-hidden rounded-3xl border border-rose-500/25 bg-gradient-to-br from-rose-950/50 via-zinc-900 to-purple-950/35 p-6 text-zinc-200 shadow-xl">
+        <div className="pointer-events-none absolute -right-7 -top-8 text-9xl opacity-10">💌</div>
+        <div className="relative flex items-start justify-between gap-4">
+          <div className="flex items-center gap-2 text-rose-300 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            <span>Daily Love</span>
+            <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-2 py-0.5 text-[10px] capitalize text-rose-200">{lovePrompt.category}</span>
+          </div>
+          <button onClick={showAnotherLovePrompt} className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-950/60 px-2.5 py-1.5 text-[11px] font-bold text-zinc-300 transition hover:border-rose-400/50 hover:text-white" title="Show another prompt">
+            <RefreshCw className="h-3.5 w-3.5" /> Another
+          </button>
         </div>
-        <p className="text-sm sm:text-base font-medium text-white">
-          &quot;What is one small thing your partner did recently that made your heart skip a beat?&quot;
-        </p>
-        <p className="mt-4 text-xs text-zinc-400">Take a moment to share your answer with each other.</p>
+        <p className="relative mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white sm:text-lg">“{lovePrompt.prompt}”</p>
+        <div className="relative mt-5 flex items-center gap-2 text-xs text-zinc-400"><Heart className="h-3.5 w-3.5 fill-rose-400 text-rose-400" />Take a moment to share your answer with {partnerName}.</div>
       </section>
     </div>
   );
