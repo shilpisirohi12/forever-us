@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/AppContext';
-import { Heart, Coins, Users, Sparkles, Inbox } from 'lucide-react';
+import { Heart, Coins, Users, Sparkles, Inbox, LogOut } from 'lucide-react';
 import PairingModal from './PairingModal';
+import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 
 export default function Header() {
   const { user, couple } = useApp();
@@ -17,6 +18,13 @@ export default function Header() {
   );
 
   const currentPoints = couple.points[user.role] || 0;
+
+  const handleLogout = async () => {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    localStorage.removeItem('forever_last_activity_at');
+    await supabase.auth.signOut();
+  };
 
   return (
     <>
@@ -74,6 +82,15 @@ export default function Header() {
               title="Couple Space & Settings"
             >
               <Users className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300 transition"
+              title="Log out"
+              aria-label="Log out"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
