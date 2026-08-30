@@ -20,6 +20,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { fireConfetti } from '@/components/Confetti';
 import { PrivateCard } from '@/lib/types';
@@ -34,6 +35,7 @@ export default function PrivateZonePage() {
     toggleFantasyChoice,
     addCustomFantasy,
     updateFantasyItem,
+    deleteFantasyItem,
     heatMeter,
     setHeatMeterChoice,
     resetHeatMeter,
@@ -734,6 +736,16 @@ export default function PrivateZonePage() {
                         className="rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-zinc-400 transition hover:border-red-500/50 hover:text-white"
                       >
                         <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${item.text}`}
+                        onClick={() => {
+                          if (window.confirm('Delete this desire? This cannot be undone.')) deleteFantasyItem(item.id);
+                        }}
+                        className="rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-zinc-400 transition hover:border-red-500/50 hover:text-red-300"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => toggleFantasyChoice(item.id)}
