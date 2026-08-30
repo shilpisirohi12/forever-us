@@ -388,6 +388,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(cloudState.redemptions)) setRedemptions(cloudState.redemptions);
       if (cloudState.privateSettings && typeof cloudState.privateSettings === 'object') setPrivateSettings(cloudState.privateSettings);
     }
+
+    // Feature tables are the canonical source. The JSON snapshot above is only
+    // a recovery/audit fallback for data created before this migration.
+    const [messageResult, bingoResult, todResult, diceResult, challengeResult, dateResult, privateCardResult, fantasyResult, rewardResult, redemptionResult, settingsResult] = await Promise.all([
+      supabase.from('messages').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('bingo_tiles').select('client_id, card_id, card_name, card_emoji, card_theme, payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('truth_or_dare_cards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('dice_decks').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('challenges').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('date_ideas').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('private_cards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('fantasy_items').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('rewards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('reward_redemptions').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('private_settings').select('payload').eq('couple_id', profile.couple_id).maybeSingle(),
+    ]);
+    const payloads = <T,>(rows: { payload: T }[] | null | undefined) => rows?.map((row) => row.payload).filter(Boolean) ?? [];
+    if (messageResult.data?.length) setMessages(payloads<Message>(messageResult.data));
+    if (todResult.data?.length) setTruthOrDareCards(payloads<TruthOrDareCard>(todResult.data));
+    if (diceResult.data?.length) setDiceDecks(payloads<DiceDeck>(diceResult.data));
+    if (challengeResult.data?.length) setChallenges(payloads<Challenge>(challengeResult.data));
+    if (dateResult.data?.length) setDateIdeas(payloads<DateIdea>(dateResult.data));
+    if (privateCardResult.data?.length) setPrivateCards(payloads<PrivateCard>(privateCardResult.data));
+    if (fantasyResult.data?.length) setFantasyItems(payloads<FantasyItem>(fantasyResult.data));
+    if (rewardResult.data?.length) setRewards(payloads<Reward>(rewardResult.data));
+    if (redemptionResult.data?.length) setRedemptions(payloads<RewardRedemption>(redemptionResult.data));
+    if (settingsResult.data?.payload) setPrivateSettings(settingsResult.data.payload as PrivateSettings);
+    if (bingoResult.data?.length) {
+      const cards = new Map<string, BingoCard>();
+      bingoResult.data.forEach((row: any) => {
+        const cardId = row.card_id || 'default';
+        const existing: BingoCard = cards.get(cardId) || {
+          id: cardId,
+          name: row.card_name || 'Bingo',
+          emoji: row.card_emoji || '❤️',
+          theme: (row.card_theme || 'romantic') as BingoCard['theme'],
+          tiles: [],
+        };
+        existing.tiles.push(row.payload as BingoCard['tiles'][number]);
+        cards.set(cardId, existing);
+      });
+      setBingoCards(Array.from(cards.values()));
+    }
     setIsCloudStateReady(true);
   }, [saveState]);
 
@@ -451,6 +494,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     rewards,
     truthOrDareCards,
   ]);
+
+  // Mirror each feature into its own relational Supabase table. A short delay
+  // batches rapid UI actions (such as a dice roll or card edit).
+  useEffect(() => {
+    if (!isCloudStateReady || !cloudCoupleId) return;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        const replaceRows = async (table: string, rows: Record<string, unknown>[]) => {
+          await supabase.from(table).delete().eq('couple_id', cloudCoupleId);
+          if (rows.length) await supabase.from(table).insert(rows);
+        };
+        await Promise.all([
+          replaceRows('messages', messages.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, sender_id: item.senderId, sender_name: item.senderName, content: item.content || 'Love action', type: item.type, reactions: item.reactions || {}, created_at: item.timestamp, payload: item }))),
+          replaceRows('bingo_tiles', bingoCards.flatMap((card) => card.tiles.map((tile) => ({ couple_id: cloudCoupleId, client_id: tile.id, card_id: card.id, card_name: card.name, card_emoji: card.emoji, card_theme: card.theme, text: tile.text, category: card.theme === 'custom' ? 'romantic' : card.theme, completed_by: tile.completedBy, payload: tile })))),
+          replaceRows('truth_or_dare_cards', truthOrDareCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, type: item.type, category: item.category, prompt: item.prompt, points: item.points, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('dice_decks', diceDecks.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, name: item.name, emoji: item.emoji, items: item.items, payload: item }))),
+          replaceRows('challenges', challenges.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, created_by: item.createdBy, assigned_to: item.assignedTo, points: item.points, reward_id: item.rewardId || null, reward_triggered: item.rewardTriggered || false, accepted_by: item.acceptedBy || null, accepted_at: item.acceptedAt || null, completed_by: item.completedBy, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('date_ideas', dateIdeas.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, budget: item.budget, mood: item.mood, location: item.location, completed: item.completed, completed_at: item.completedAt || null, rating: item.rating || null, notes: item.notes || null, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('private_cards', privateCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, category: item.category, title: item.title, prompt: item.prompt, payload: item }))),
+          replaceRows('fantasy_items', fantasyItems.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, text: item.text, partner1_choice: item.partner1Choice || false, partner2_choice: item.partner2Choice || false, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('rewards', rewards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, cost: item.cost, category: item.category, icon: item.icon, created_by: item.createdBy, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('reward_redemptions', redemptions.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, reward_client_id: item.rewardId, reward_id: null, reward_title: item.rewardTitle, reward_cost: item.rewardCost, redeemed_by: item.redeemedBy, redeemed_by_name: item.redeemedByName, redeemed_at: item.redeemedAt, status: item.status, payload: item }))),
+        ]);
+        await supabase.from('private_settings').upsert({ couple_id: cloudCoupleId, payload: privateSettings, updated_at: new Date().toISOString() });
+      })();
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [bingoCards, challenges, cloudCoupleId, dateIdeas, diceDecks, fantasyItems, isCloudStateReady, messages, privateCards, privateSettings, redemptions, rewards, truthOrDareCards]);
 
   // Toast notification
   const showToast = useCallback((message: string, type: 'love' | 'success' | 'spicy' | 'info' = 'love') => {
