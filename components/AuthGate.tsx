@@ -118,6 +118,17 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     }
   };
 
+  const useDifferentEmail = async () => {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    setSubmitting(true);
+    await supabase.auth.signOut();
+    setName('');
+    setEmail('');
+    setSubmitting(false);
+    setMessage('Choose the email account you want to use.');
+  };
+
   const enroll = async (event: FormEvent) => {
     event.preventDefault();
     const supabase = createBrowserSupabaseClient();
@@ -187,6 +198,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             <label className="block text-xs font-bold text-zinc-300">{mode === 'create' ? 'Choose a private couple code' : 'Partner’s couple code'}<input required minLength={6} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 font-mono text-sm uppercase text-white outline-none focus:border-pink-400" placeholder="AT-LEAST-6-CHARS" /></label>
             <label className="block text-xs font-bold text-zinc-300">I am<select value={role} onChange={(event) => setRole(event.target.value as 'partner1' | 'partner2')} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400"><option value="partner1">Partner 1</option><option value="partner2">Partner 2</option></select></label>
             <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{mode === 'create' ? <Users className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}{submitting ? 'Saving…' : mode === 'create' ? 'Create our private space' : 'Join our private space'}</button>
+            <button type="button" onClick={useDifferentEmail} disabled={submitting} className="w-full text-center text-xs font-semibold text-zinc-400 transition hover:text-rose-200 disabled:opacity-60">Use a different email</button>
           </form>
         )}
         {message && <p className="mt-4 rounded-xl border border-pink-500/25 bg-pink-950/30 p-3 text-center text-xs text-pink-200">{message}</p>}
