@@ -1,10 +1,11 @@
 'use client';
 
-import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { Heart, Loader2, LogIn, Mail, ShieldCheck, Users } from 'lucide-react';
 import { createBrowserSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export default function AuthGate({ children }: { children: ReactNode }) {
+  const inactivityTimer = useRef<number | undefined>(undefined);
   const [loading, setLoading] = useState(isSupabaseConfigured());
   const [signedIn, setSignedIn] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
@@ -39,6 +40,27 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!signedIn || !enrolled) return;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const signOutForInactivity = async () => {
+      await supabase.auth.signOut();
+      setMessage('You were signed out after one hour of inactivity.');
+    };
+    const resetTimer = () => {
+      if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = window.setTimeout(signOutForInactivity, 60 * 60 * 1000);
+    };
+    const activityEvents: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'scroll', 'touchstart', 'focus'];
+    activityEvents.forEach((event) => window.addEventListener(event, resetTimer, { passive: true }));
+    resetTimer();
+    return () => {
+      if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
+      activityEvents.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, [signedIn, enrolled]);
 
   const sendMagicLink = async (event: FormEvent) => {
     event.preventDefault();
