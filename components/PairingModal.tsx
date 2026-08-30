@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/lib/context/AppContext';
-import { X, Copy, Check, Heart, Users, Sparkles, Cloud, Lock } from 'lucide-react';
+import { X, Copy, Check, Heart, Users, Sparkles, Cloud } from 'lucide-react';
 
 export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { couple, updateCoupleInfo, isCloudConnected, showToast } = useApp();
@@ -12,7 +12,6 @@ export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onC
   const [p1Avatar, setP1Avatar] = useState(couple.partner1Avatar);
   const [p2Avatar, setP2Avatar] = useState(couple.partner2Avatar);
   const [anniversary, setAnniversary] = useState(couple.anniversaryDate);
-  const [pin, setPin] = useState(couple.privatePin);
 
   // The provider restores saved couple details after the modal first mounts.
   // Refresh the draft whenever the settings dialog opens so saving never overwrites them with defaults.
@@ -23,7 +22,6 @@ export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onC
     setP1Avatar(couple.partner1Avatar);
     setP2Avatar(couple.partner2Avatar);
     setAnniversary(couple.anniversaryDate);
-    setPin(couple.privatePin);
   }, [isOpen, couple]);
 
   if (!isOpen) return null;
@@ -42,7 +40,6 @@ export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onC
       partner1Avatar: p1Avatar,
       partner2Avatar: p2Avatar,
       anniversaryDate: anniversary,
-      privatePin: pin,
     });
     onClose();
   };
@@ -171,8 +168,8 @@ export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onC
             </div>
           </div>
 
-          {/* Anniversary & Private PIN */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Anniversary */}
+          <div>
             <div>
               <label className="text-xs font-semibold text-zinc-300 block mb-1">Anniversary Date</label>
               <input
@@ -180,19 +177,6 @@ export default function PairingModal({ isOpen, onClose }: { isOpen: boolean; onC
                 value={anniversary}
                 onChange={(e) => setAnniversary(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-rose-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-zinc-300 block mb-1 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-red-400" /> Private Zone PIN (4 Digits)
-              </label>
-              <input
-                type="password"
-                maxLength={4}
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="1234"
-                className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-700 rounded-xl text-white font-mono tracking-widest focus:outline-none focus:border-red-500"
               />
             </div>
           </div>
