@@ -54,6 +54,21 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     setMessage(error ? error.message : 'Check your inbox for the secure sign-in link.');
   };
 
+  const signInWithGoogle = async () => {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    setSubmitting(true);
+    setMessage('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setSubmitting(false);
+      setMessage(error.message);
+    }
+  };
+
   const enroll = async (event: FormEvent) => {
     event.preventDefault();
     const supabase = createBrowserSupabaseClient();
@@ -98,12 +113,16 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         </div>
 
         {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-pink-400" /></div> : !signedIn ? (
-          <form onSubmit={sendMagicLink} className="space-y-4">
-            <label className="block text-xs font-bold text-zinc-300">Email address
-              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder="you@example.com" />
-            </label>
-            <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"><Mail className="h-4 w-4" />{submitting ? 'Sending…' : 'Email me a secure sign-in link'}</button>
-          </form>
+          <div className="space-y-4">
+            <button type="button" onClick={signInWithGoogle} disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-600 bg-white px-4 py-3 text-sm font-bold text-zinc-900 transition hover:bg-zinc-100 disabled:opacity-60"><span className="text-base font-black text-red-500">G</span>Continue with Google</button>
+            <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-600"><span className="h-px flex-1 bg-zinc-800" />or email<span className="h-px flex-1 bg-zinc-800" /></div>
+            <form onSubmit={sendMagicLink} className="space-y-4">
+              <label className="block text-xs font-bold text-zinc-300">Email address
+                <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder="you@example.com" />
+              </label>
+              <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"><Mail className="h-4 w-4" />{submitting ? 'Sending…' : 'Email me a secure sign-in link'}</button>
+            </form>
+          </div>
         ) : (
           <form onSubmit={enroll} className="space-y-4">
             <div className="grid grid-cols-2 rounded-xl border border-zinc-700 bg-zinc-950 p-1 text-xs font-bold"><button type="button" onClick={() => setMode('join')} className={`rounded-lg py-2 ${mode === 'join' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Join partner</button><button type="button" onClick={() => setMode('create')} className={`rounded-lg py-2 ${mode === 'create' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Create space</button></div>
