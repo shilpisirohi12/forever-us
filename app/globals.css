@@ -59,6 +59,32 @@ html[data-theme='red'] [class*='bg-zinc-800'] { background-color: #4a1720 !impor
 html[data-theme='red'] [class*='border-zinc-800'],
 html[data-theme='red'] [class*='border-zinc-700'] { border-color: #6f2634 !important; }
 
+/* Header theme picker (native select/options need explicit colors). */
+html[data-theme='dark'] select[aria-label='Choose theme'] {
+  background-color: #18181b;
+  color: #e4e4e7;
+}
+html[data-theme='dark'] select[aria-label='Choose theme'] option {
+  background-color: #18181b;
+  color: #e4e4e7;
+}
+html[data-theme='light'] select[aria-label='Choose theme'] {
+  background-color: #fff4f5;
+  color: #3f3f46;
+}
+html[data-theme='light'] select[aria-label='Choose theme'] option {
+  background-color: #fffdfd;
+  color: #3f3f46;
+}
+html[data-theme='red'] select[aria-label='Choose theme'] {
+  background-color: #351017;
+  color: #ffe4e6;
+}
+html[data-theme='red'] select[aria-label='Choose theme'] option {
+  background-color: #351017;
+  color: #ffe4e6;
+}
+
 /* Custom fade animation */
 @keyframes fadeIn {
   from {
