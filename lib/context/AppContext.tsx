@@ -242,6 +242,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadCloudCouple = useCallback(async () => {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    const { data: profile } = await supabase.from('profiles').select('couple_id, role').eq('id', authUser.id).maybeSingle();
+    if (!profile?.couple_id) return;
+    const { data: cloudCouple } = await supabase.from('couples').select('*').eq('id', profile.couple_id).maybeSingle();
+    if (!cloudCouple) return;
+    const nextCouple: Couple = {
+      id: cloudCouple.id,
+      code: cloudCouple.code,
+      partner1Name: cloudCouple.partner1_name,
+      partner2Name: cloudCouple.partner2_name,
+      partner1Avatar: cloudCouple.partner1_avatar,
+      partner2Avatar: cloudCouple.partner2_avatar,
+      anniversaryDate: cloudCouple.anniversary_date,
+      points: { partner1: cloudCouple.partner1_points, partner2: cloudCouple.partner2_points },
+      privatePin: cloudCouple.private_pin,
+    };
+    setCouple(nextCouple);
+    saveState('forever_couple', nextCouple);
+    if (profile.role === 'partner1' || profile.role === 'partner2') {
+      setCurrentUserRole(profile.role);
+      localStorage.setItem('forever_user_role', profile.role);
+    }
+  }, [saveState]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    loadCloudCouple();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') loadCloudCouple();
+    });
+    return () => subscription.unsubscribe();
+  }, [loadCloudCouple]);
+
   // Toast notification
   const showToast = useCallback((message: string, type: 'love' | 'success' | 'spicy' | 'info' = 'love') => {
     setToast({ message, type });
@@ -271,6 +310,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveState('forever_couple', updated);
       return updated;
     });
+    const supabase = createBrowserSupabaseClient();
+    if (supabase) {
+      void (async () => {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) return;
+        const { data: profile } = await supabase.from('profiles').select('couple_id').eq('id', authUser.id).maybeSingle();
+        if (!profile?.couple_id) return;
+        const updates: Record<string, unknown> = {};
+        if (data.partner1Name !== undefined) updates.partner1_name = data.partner1Name;
+        if (data.partner2Name !== undefined) updates.partner2_name = data.partner2Name;
+        if (data.partner1Avatar !== undefined) updates.partner1_avatar = data.partner1Avatar;
+        if (data.partner2Avatar !== undefined) updates.partner2_avatar = data.partner2Avatar;
+        if (data.anniversaryDate !== undefined) updates.anniversary_date = data.anniversaryDate;
+        if (data.privatePin !== undefined) updates.private_pin = data.privatePin;
+        if (data.points !== undefined) {
+          updates.partner1_points = data.points.partner1;
+          updates.partner2_points = data.points.partner2;
+        }
+        if (Object.keys(updates).length > 0) await supabase.from('couples').update(updates).eq('id', profile.couple_id);
+      })();
+    }
     showToast('Couple details updated!', 'success');
   };
 
