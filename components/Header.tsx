@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/AppContext';
-import { Heart, Coins, Users, Sparkles, Inbox, LogOut } from 'lucide-react';
+import { Heart, Coins, Users, Sparkles, Inbox, LogOut, Palette } from 'lucide-react';
 import PairingModal from './PairingModal';
 import { createBrowserSupabaseClient } from '@/lib/supabase/client';
 
 export default function Header() {
-  const { user, couple } = useApp();
+  const { user, couple, theme, setTheme } = useApp();
   const [showPairModal, setShowPairModal] = useState(false);
 
   // Calculate days together
@@ -74,6 +74,20 @@ export default function Header() {
               <span>{user.avatar}</span>
               <span className="hidden md:inline">{user.name}</span>
             </div>
+
+            <label className="relative flex items-center rounded-xl border border-zinc-800 bg-zinc-900/80 px-2 text-zinc-400 transition hover:border-zinc-700 hover:text-white" title="Choose theme">
+              <Palette className="pointer-events-none h-4 w-4 shrink-0" />
+              <select
+                value={theme}
+                onChange={(event) => setTheme(event.target.value as 'dark' | 'light' | 'red')}
+                aria-label="Choose theme"
+                className="ml-1 w-[52px] cursor-pointer appearance-none bg-transparent text-xs outline-none"
+              >
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="red">Red</option>
+              </select>
+            </label>
 
             {/* Couple Settings / Pairing Modal */}
             <button

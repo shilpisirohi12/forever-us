@@ -5,12 +5,39 @@
   --foreground: #fafafa;
 }
 
+html[data-theme='light'] {
+  --background: #fff7f8;
+  --foreground: #27272a;
+  color-scheme: light;
+}
+
+html[data-theme='red'] {
+  --background: #21080e;
+  --foreground: #fff5f5;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
+
+/* Theme overrides for the app's existing dark Tailwind surface palette. */
+html[data-theme='light'] body { background: #fff7f8; color: #27272a; }
+html[data-theme='light'] .bg-zinc-950 { background-color: #fffdfd !important; }
+html[data-theme='light'] .bg-zinc-900 { background-color: #fff4f5 !important; }
+html[data-theme='light'] .bg-zinc-800 { background-color: #f4e8ea !important; }
+html[data-theme='light'] .text-white, html[data-theme='light'] .text-zinc-100 { color: #27272a !important; }
+html[data-theme='light'] .text-zinc-200, html[data-theme='light'] .text-zinc-300 { color: #52525b !important; }
+html[data-theme='light'] .text-zinc-400 { color: #71717a !important; }
+html[data-theme='light'] .border-zinc-800, html[data-theme='light'] .border-zinc-700 { border-color: #eadadd !important; }
+
+html[data-theme='red'] body { background: #21080e; color: #fff5f5; }
+html[data-theme='red'] .bg-zinc-950 { background-color: #21080e !important; }
+html[data-theme='red'] .bg-zinc-900 { background-color: #351017 !important; }
+html[data-theme='red'] .bg-zinc-800 { background-color: #4a1720 !important; }
+html[data-theme='red'] .border-zinc-800, html[data-theme='red'] .border-zinc-700 { border-color: #6f2634 !important; }
 
 /* Custom fade animation */
 @keyframes fadeIn {

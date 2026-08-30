@@ -36,6 +36,8 @@ interface AppContextType {
   updateCoupleInfo: (data: Partial<Couple>) => void;
   addPoints: (role: 'partner1' | 'partner2', amount: number) => void;
   isCloudConnected: boolean;
+  theme: 'dark' | 'light' | 'red';
+  setTheme: (theme: 'dark' | 'light' | 'red') => void;
 
   // Chat
   messages: Message[];
@@ -195,6 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [disguiseMode, setDisguiseMode] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'love' | 'success' | 'spicy' | 'info' } | null>(null);
   const [isCloudConnected, setIsCloudConnected] = useState(false);
+  const [theme, setThemeState] = useState<'dark' | 'light' | 'red'>('dark');
   const [isLocalHydrated, setIsLocalHydrated] = useState(false);
   const [cloudCoupleId, setCloudCoupleId] = useState<string | null>(null);
   const [isCloudStateReady, setIsCloudStateReady] = useState(false);
@@ -236,6 +239,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!isSupabaseConfigured() && (savedRole === 'partner1' || savedRole === 'partner2')) {
         setCurrentUserRole(savedRole);
       }
+
+      const savedTheme = localStorage.getItem('forever_theme');
+      if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'red') setThemeState(savedTheme);
 
       const shouldClearInbox = !localStorage.getItem('forever_inbox_cleared_v1');
       const savedMessages = localStorage.getItem('forever_messages');
@@ -328,6 +334,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Ignore write errors
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('dark', theme !== 'light');
+    localStorage.setItem('forever_theme', theme);
+  }, [theme]);
+
+  const setTheme = (nextTheme: 'dark' | 'light' | 'red') => setThemeState(nextTheme);
 
   const loadCloudCouple = useCallback(async () => {
     const supabase = createBrowserSupabaseClient();
@@ -1164,6 +1178,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateCoupleInfo,
         addPoints,
         isCloudConnected,
+        theme,
+        setTheme,
         messages,
         sendMessage,
         addReaction,
