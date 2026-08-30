@@ -26,7 +26,6 @@ import {
   INITIAL_PRIVATE_CARDS,
   INITIAL_FANTASY_ITEMS,
   INITIAL_REWARDS,
-  INITIAL_MESSAGES,
 } from '../data/initialData';
 import { createBrowserSupabaseClient, isSupabaseConfigured } from '../supabase/client';
 
@@ -131,7 +130,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUserRole, setCurrentUserRole] = useState<'partner1' | 'partner2'>('partner1');
   const [couple, setCouple] = useState<Couple>(DEFAULT_COUPLE);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [bingoCards, setBingoCards] = useState<BingoCard[]>(INITIAL_BINGO_CARDS);
   const [activeCardId, setActiveCardIdState] = useState<string>(INITIAL_BINGO_CARDS[0].id);
   const [truthOrDareCards, setTruthOrDareCards] = useState<TruthOrDareCard[]>(INITIAL_TRUTH_OR_DARE);
@@ -199,8 +198,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCurrentUserRole(savedRole);
       }
 
+      const shouldClearInbox = !localStorage.getItem('forever_inbox_cleared_v1');
       const savedMessages = localStorage.getItem('forever_messages');
-      if (savedMessages) setMessages(JSON.parse(savedMessages));
+      if (shouldClearInbox) {
+        localStorage.setItem('forever_messages', JSON.stringify([]));
+        localStorage.setItem('forever_inbox_cleared_v1', 'done');
+        setMessages([]);
+      } else if (savedMessages) {
+        setMessages(JSON.parse(savedMessages));
+      }
 
       const savedHeatMeter = localStorage.getItem('forever_heat_meter');
       if (savedHeatMeter) setHeatMeter(JSON.parse(savedHeatMeter));
