@@ -104,6 +104,7 @@ interface AppContextType {
   updateRedemptionStatus: (redemptionId: string, status: 'claimed' | 'rejected') => void;
   addCustomReward: (reward: Omit<Reward, 'id' | 'createdBy' | 'isCustom'>) => void;
   updateReward: (rewardId: string, updates: Pick<Reward, 'title' | 'description' | 'cost' | 'category' | 'icon'>) => void;
+  deleteReward: (rewardId: string) => void;
 
   // Toast / Alert
   toast: { message: string; type: 'love' | 'success' | 'spicy' | 'info' } | null;
@@ -900,6 +901,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast('Coupon updated!', 'success');
   };
 
+  const deleteReward = (rewardId: string) => {
+    setRewards((prev) => {
+      const updated = prev.filter((reward) => reward.id !== rewardId);
+      saveState('forever_rewards', updated);
+      return updated;
+    });
+    showToast('Coupon deleted.', 'info');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -959,6 +969,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateRedemptionStatus,
         addCustomReward,
         updateReward,
+        deleteReward,
         toast,
         showToast,
       }}

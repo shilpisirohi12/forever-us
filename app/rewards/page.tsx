@@ -18,6 +18,7 @@ import {
   Film,
   CheckCircle2,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { fireConfetti } from '@/components/Confetti';
 import { Reward } from '@/lib/types';
@@ -32,6 +33,7 @@ export default function RewardsPage() {
     updateRedemptionStatus,
     addCustomReward,
     updateReward,
+    deleteReward,
     addPoints,
     showToast,
   } = useApp();
@@ -112,6 +114,12 @@ export default function RewardsPage() {
       category: editCategory,
       icon: editingReward.icon,
     });
+    setEditingReward(null);
+  };
+
+  const handleDeleteReward = () => {
+    if (!editingReward || !window.confirm(`Delete “${editingReward.title}”? This cannot be undone.`)) return;
+    deleteReward(editingReward.id);
     setEditingReward(null);
   };
 
@@ -398,8 +406,8 @@ export default function RewardsPage() {
 
       {/* Edit Coupon Modal */}
       {editingReward && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <form onSubmit={handleUpdateReward} className="w-full max-w-sm space-y-4 rounded-3xl border border-amber-500/30 bg-zinc-900 p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-6 backdrop-blur-sm sm:items-center">
+          <form onSubmit={handleUpdateReward} className="my-auto w-full max-w-sm space-y-4 rounded-3xl border border-amber-500/30 bg-zinc-900 p-5 shadow-2xl">
             <h3 className="text-sm font-bold text-white">Edit Coupon</h3>
             <div className="space-y-1"><label className="text-[11px] text-zinc-400">Title</label><input required value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs text-white outline-none focus:border-amber-500" /></div>
             <div className="space-y-1"><label className="text-[11px] text-zinc-400">Description</label><textarea required rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2.5 text-xs text-white outline-none focus:border-amber-500" /></div>
@@ -407,7 +415,7 @@ export default function RewardsPage() {
               <div className="space-y-1"><label className="text-[11px] text-zinc-400">Cost (Coins)</label><input required type="number" min={0} step={5} value={editCost} onChange={(e) => setEditCost(Number(e.target.value))} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-xs text-white outline-none focus:border-amber-500" /></div>
               <div className="space-y-1"><label className="text-[11px] text-zinc-400">Category</label><select value={editCategory} onChange={(e) => setEditCategory(e.target.value as typeof editCategory)} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-2 text-xs text-white outline-none focus:border-amber-500"><option value="service">Service</option><option value="food">Food</option><option value="intimacy">Intimate</option><option value="fun">Fun</option></select></div>
             </div>
-            <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setEditingReward(null)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white">Cancel</button><button type="submit" className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-black hover:bg-amber-400">Save changes</button></div>
+            <div className="flex items-center justify-between gap-2 pt-2"><button type="button" onClick={handleDeleteReward} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/10"><Trash2 className="h-3.5 w-3.5" />Delete</button><div className="flex gap-2"><button type="button" onClick={() => setEditingReward(null)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white">Cancel</button><button type="submit" className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-black hover:bg-amber-400">Save changes</button></div></div>
           </form>
         </div>
       )}
