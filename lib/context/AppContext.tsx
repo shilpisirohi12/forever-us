@@ -392,17 +392,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Feature tables are the canonical source. The JSON snapshot above is only
     // a recovery/audit fallback for data created before this migration.
     const [messageResult, bingoResult, todResult, diceResult, challengeResult, dateResult, privateCardResult, fantasyResult, rewardResult, redemptionResult, settingsResult] = await Promise.all([
-      supabase.from('messages').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('bingo_tiles').select('client_id, card_id, card_name, card_emoji, card_theme, payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('truth_or_dare_cards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('dice_decks').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('challenges').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('date_ideas').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('private_cards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('fantasy_items').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('rewards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('reward_redemptions').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
-      supabase.from('private_settings').select('payload').eq('couple_id', profile.couple_id).maybeSingle(),
+      supabase.from('love_inbox').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('games_couples_bingo').select('client_id, card_id, card_name, card_emoji, card_theme, payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('games_truth_or_dare').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('games_reveal_dice').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('games_spoil_me').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('date_night_ideas').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('private_zone_cards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('private_zone_fantasies').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('love_rewards').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('love_reward_redemptions').select('payload').eq('couple_id', profile.couple_id).not('payload', 'is', null),
+      supabase.from('private_zone_settings').select('payload').eq('couple_id', profile.couple_id).maybeSingle(),
     ]);
     const payloads = <T,>(rows: { payload: T }[] | null | undefined) => rows?.map((row) => row.payload).filter(Boolean) ?? [];
     if (messageResult.data?.length) setMessages(payloads<Message>(messageResult.data));
@@ -508,18 +508,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (rows.length) await supabase.from(table).insert(rows);
         };
         await Promise.all([
-          replaceRows('messages', messages.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, sender_id: item.senderId, sender_name: item.senderName, content: item.content || 'Love action', type: item.type, reactions: item.reactions || {}, created_at: item.timestamp, payload: item }))),
-          replaceRows('bingo_tiles', bingoCards.flatMap((card) => card.tiles.map((tile) => ({ couple_id: cloudCoupleId, client_id: tile.id, card_id: card.id, card_name: card.name, card_emoji: card.emoji, card_theme: card.theme, text: tile.text, category: card.theme === 'custom' ? 'romantic' : card.theme, completed_by: tile.completedBy, payload: tile })))),
-          replaceRows('truth_or_dare_cards', truthOrDareCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, type: item.type, category: item.category, prompt: item.prompt, points: item.points, is_custom: item.isCustom || false, payload: item }))),
-          replaceRows('dice_decks', diceDecks.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, name: item.name, emoji: item.emoji, items: item.items, payload: item }))),
-          replaceRows('challenges', challenges.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, created_by: item.createdBy, assigned_to: item.assignedTo, points: item.points, reward_id: item.rewardId || null, reward_triggered: item.rewardTriggered || false, accepted_by: item.acceptedBy || null, accepted_at: item.acceptedAt || null, completed_by: item.completedBy, is_custom: item.isCustom || false, payload: item }))),
-          replaceRows('date_ideas', dateIdeas.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, budget: item.budget, mood: item.mood, location: item.location, completed: item.completed, completed_at: item.completedAt || null, rating: item.rating || null, notes: item.notes || null, is_custom: item.isCustom || false, payload: item }))),
-          replaceRows('private_cards', privateCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, category: item.category, title: item.title, prompt: item.prompt, payload: item }))),
-          replaceRows('fantasy_items', fantasyItems.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, text: item.text, partner1_choice: item.partner1Choice || false, partner2_choice: item.partner2Choice || false, is_custom: item.isCustom || false, payload: item }))),
-          replaceRows('rewards', rewards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, cost: item.cost, category: item.category, icon: item.icon, created_by: item.createdBy, is_custom: item.isCustom || false, payload: item }))),
-          replaceRows('reward_redemptions', redemptions.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, reward_client_id: item.rewardId, reward_id: null, reward_title: item.rewardTitle, reward_cost: item.rewardCost, redeemed_by: item.redeemedBy, redeemed_by_name: item.redeemedByName, redeemed_at: item.redeemedAt, status: item.status, payload: item }))),
+          replaceRows('love_inbox', messages.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, sender_id: item.senderId, sender_name: item.senderName, content: item.content || 'Love action', type: item.type, reactions: item.reactions || {}, created_at: item.timestamp, payload: item }))),
+          replaceRows('games_couples_bingo', bingoCards.flatMap((card) => card.tiles.map((tile) => ({ couple_id: cloudCoupleId, client_id: tile.id, card_id: card.id, card_name: card.name, card_emoji: card.emoji, card_theme: card.theme, text: tile.text, category: card.theme === 'custom' ? 'romantic' : card.theme, completed_by: tile.completedBy, payload: tile })))),
+          replaceRows('games_truth_or_dare', truthOrDareCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, type: item.type, category: item.category, prompt: item.prompt, points: item.points, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('games_reveal_dice', diceDecks.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, name: item.name, emoji: item.emoji, items: item.items, payload: item }))),
+          replaceRows('games_spoil_me', challenges.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, created_by: item.createdBy, assigned_to: item.assignedTo, points: item.points, reward_id: item.rewardId || null, reward_triggered: item.rewardTriggered || false, accepted_by: item.acceptedBy || null, accepted_at: item.acceptedAt || null, completed_by: item.completedBy, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('date_night_ideas', dateIdeas.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, budget: item.budget, mood: item.mood, location: item.location, completed: item.completed, completed_at: item.completedAt || null, rating: item.rating || null, notes: item.notes || null, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('private_zone_cards', privateCards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, category: item.category, title: item.title, prompt: item.prompt, payload: item }))),
+          replaceRows('private_zone_fantasies', fantasyItems.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, text: item.text, partner1_choice: item.partner1Choice || false, partner2_choice: item.partner2Choice || false, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('love_rewards', rewards.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, title: item.title, description: item.description, cost: item.cost, category: item.category, icon: item.icon, created_by: item.createdBy, is_custom: item.isCustom || false, payload: item }))),
+          replaceRows('love_reward_redemptions', redemptions.map((item) => ({ couple_id: cloudCoupleId, client_id: item.id, reward_client_id: item.rewardId, reward_id: null, reward_title: item.rewardTitle, reward_cost: item.rewardCost, redeemed_by: item.redeemedBy, redeemed_by_name: item.redeemedByName, redeemed_at: item.redeemedAt, status: item.status, payload: item }))),
         ]);
-        await supabase.from('private_settings').upsert({ couple_id: cloudCoupleId, payload: privateSettings, updated_at: new Date().toISOString() });
+        await supabase.from('private_zone_settings').upsert({ couple_id: cloudCoupleId, payload: privateSettings, updated_at: new Date().toISOString() });
       })();
     }, 600);
     return () => window.clearTimeout(timeout);
