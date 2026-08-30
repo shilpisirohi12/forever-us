@@ -34,7 +34,6 @@ interface AppContextType {
   // User & Couple
   user: UserProfile;
   couple: Couple;
-  switchUser: (role: 'partner1' | 'partner2') => void;
   updateCoupleInfo: (data: Partial<Couple>) => void;
   addPoints: (role: 'partner1' | 'partner2', amount: number) => void;
   isCloudConnected: boolean;
@@ -188,7 +187,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const savedRole = localStorage.getItem('forever_user_role');
-      if (savedRole === 'partner1' || savedRole === 'partner2') setCurrentUserRole(savedRole);
+      if (!isSupabaseConfigured() && (savedRole === 'partner1' || savedRole === 'partner2')) {
+        setCurrentUserRole(savedRole);
+      }
 
       const savedMessages = localStorage.getItem('forever_messages');
       if (savedMessages) setMessages(JSON.parse(savedMessages));
@@ -295,13 +296,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     name: currentUserRole === 'partner1' ? couple.partner1Name : couple.partner2Name,
     avatar: currentUserRole === 'partner1' ? couple.partner1Avatar : couple.partner2Avatar,
     role: currentUserRole,
-  };
-
-  const switchUser = (role: 'partner1' | 'partner2') => {
-    setCurrentUserRole(role);
-    localStorage.setItem('forever_user_role', role);
-    const name = role === 'partner1' ? couple.partner1Name : couple.partner2Name;
-    showToast(`Switched view to ${name}`, 'info');
   };
 
   const updateCoupleInfo = (data: Partial<Couple>) => {
@@ -869,7 +863,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         couple,
-        switchUser,
         updateCoupleInfo,
         addPoints,
         isCloudConnected,

@@ -7,7 +7,7 @@ import { Heart, Coins, Users, Lock, Unlock, Sparkles, Inbox } from 'lucide-react
 import PairingModal from './PairingModal';
 
 export default function Header() {
-  const { user, couple, switchUser, isPrivateUnlocked, lockPrivateZone } = useApp();
+  const { user, couple, isPrivateUnlocked, lockPrivateZone } = useApp();
   const [showPairModal, setShowPairModal] = useState(false);
 
   // Calculate days together
@@ -61,33 +61,10 @@ export default function Header() {
               <span className="hidden sm:inline text-[10px] text-amber-400/80 font-normal">Coins</span>
             </Link>
 
-            {/* Partner Switcher Toggle */}
-            <div className="flex items-center bg-zinc-900/80 p-1 rounded-full border border-zinc-800 text-xs">
-              <button
-                onClick={() => switchUser('partner1')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition font-medium ${
-                  user.role === 'partner1'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-                title={`Play as ${couple.partner1Name}`}
-              >
-                <span>{couple.partner1Avatar}</span>
-                <span className="hidden md:inline">{couple.partner1Name}</span>
-              </button>
-
-              <button
-                onClick={() => switchUser('partner2')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition font-medium ${
-                  user.role === 'partner2'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-                title={`Play as ${couple.partner2Name}`}
-              >
-                <span>{couple.partner2Avatar}</span>
-                <span className="hidden md:inline">{couple.partner2Name}</span>
-              </button>
+            {/* Active profile is assigned by the authenticated Supabase membership. */}
+            <div className="flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 px-2.5 py-1 text-xs font-medium text-zinc-200" title="Profile set by your secure sign-in">
+              <span>{user.avatar}</span>
+              <span className="hidden md:inline">{user.name}</span>
             </div>
 
             {/* Private Zone Lock Status */}
