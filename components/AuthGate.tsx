@@ -6,6 +6,7 @@ import { createBrowserSupabaseClient, isSupabaseConfigured } from '@/lib/supabas
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const inactivityTimer = useRef<number | undefined>(undefined);
+  const lastActivityAt = useRef<number>(Date.now());
   const [loading, setLoading] = useState(isSupabaseConfigured());
   const [signedIn, setSignedIn] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
@@ -45,20 +46,46 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     if (!signedIn || !enrolled) return;
     const supabase = createBrowserSupabaseClient();
     if (!supabase) return;
+    const inactivityLimit = 60 * 60 * 1000;
+    const savedActivity = Number(localStorage.getItem('forever_last_activity_at'));
+    lastActivityAt.current = Number.isFinite(savedActivity) && savedActivity > 0 ? savedActivity : Date.now();
+    let isSigningOut = false;
     const signOutForInactivity = async () => {
+      if (isSigningOut) return;
+      isSigningOut = true;
       await supabase.auth.signOut();
+      localStorage.removeItem('forever_last_activity_at');
       setMessage('You were signed out after one hour of inactivity.');
     };
-    const resetTimer = () => {
+    const checkInactivity = () => {
+      const remaining = inactivityLimit - (Date.now() - lastActivityAt.current);
+      if (remaining <= 0) {
+        void signOutForInactivity();
+        return;
+      }
       if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
-      inactivityTimer.current = window.setTimeout(signOutForInactivity, 60 * 60 * 1000);
+      inactivityTimer.current = window.setTimeout(checkInactivity, remaining);
     };
-    const activityEvents: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'scroll', 'touchstart', 'focus'];
-    activityEvents.forEach((event) => window.addEventListener(event, resetTimer, { passive: true }));
-    resetTimer();
+    const recordActivity = () => {
+      lastActivityAt.current = Date.now();
+      localStorage.setItem('forever_last_activity_at', String(lastActivityAt.current));
+      checkInactivity();
+    };
+    const checkWhenVisible = () => {
+      if (document.visibilityState === 'visible') checkInactivity();
+    };
+    const activityEvents: (keyof WindowEventMap)[] = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach((event) => window.addEventListener(event, recordActivity, { passive: true }));
+    window.addEventListener('focus', checkInactivity);
+    document.addEventListener('visibilitychange', checkWhenVisible);
+    checkInactivity();
+    const interval = window.setInterval(checkInactivity, 60_000);
     return () => {
       if (inactivityTimer.current) window.clearTimeout(inactivityTimer.current);
-      activityEvents.forEach((event) => window.removeEventListener(event, resetTimer));
+      window.clearInterval(interval);
+      activityEvents.forEach((event) => window.removeEventListener(event, recordActivity));
+      window.removeEventListener('focus', checkInactivity);
+      document.removeEventListener('visibilitychange', checkWhenVisible);
     };
   }, [signedIn, enrolled]);
 
