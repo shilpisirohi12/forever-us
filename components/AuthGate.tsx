@@ -73,7 +73,20 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     await loadMembership();
   };
 
-  if (!isSupabaseConfigured() || (signedIn && enrolled)) return <>{children}</>;
+  if (!isSupabaseConfigured()) {
+    if (process.env.NODE_ENV !== 'production') return <>{children}</>;
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-10">
+        <section className="w-full rounded-3xl border border-red-500/30 bg-zinc-900/90 p-6 text-center shadow-2xl">
+          <ShieldCheck className="mx-auto h-8 w-8 text-red-300" />
+          <h1 className="mt-3 text-xl font-black text-white">Secure setup required</h1>
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400">This deployment is locked until its Supabase environment variables are configured in Vercel.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (signedIn && enrolled) return <>{children}</>;
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-10">
