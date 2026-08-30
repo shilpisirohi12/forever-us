@@ -163,6 +163,7 @@ alter publication supabase_realtime add table public.challenges;
 
 -- Row Level Security (RLS)
 alter table public.couples enable row level security;
+alter table public.profiles enable row level security;
 alter table public.messages enable row level security;
 alter table public.bingo_tiles enable row level security;
 alter table public.truth_or_dare_cards enable row level security;
@@ -173,17 +174,77 @@ alter table public.fantasy_items enable row level security;
 alter table public.rewards enable row level security;
 alter table public.reward_redemptions enable row level security;
 
--- Basic Public Access Policies for quick pairing & development
-create policy "Allow all couple operations" on public.couples for all using (true) with check (true);
-create policy "Allow message operations" on public.messages for all using (true) with check (true);
-create policy "Allow bingo operations" on public.bingo_tiles for all using (true) with check (true);
-create policy "Allow tod operations" on public.truth_or_dare_cards for all using (true) with check (true);
-create policy "Allow challenges operations" on public.challenges for all using (true) with check (true);
-create policy "Allow date operations" on public.date_ideas for all using (true) with check (true);
-create policy "Allow private operations" on public.private_cards for all using (true) with check (true);
-create policy "Allow fantasy operations" on public.fantasy_items for all using (true) with check (true);
-create policy "Allow rewards operations" on public.rewards for all using (true) with check (true);
-create policy "Allow redemption operations" on public.reward_redemptions for all using (true) with check (true);
+-- Secure membership helpers. Authenticated users can only access the couple
+-- space to which their profile belongs.
+create unique index if not exists profiles_one_role_per_couple on public.profiles (couple_id, role) where couple_id is not null;
+
+create or replace function public.is_couple_member(target_couple_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and couple_id = target_couple_id
+  );
+$$;
+
+create or replace function public.create_couple_space(
+  requested_code text,
+  requested_role text,
+  display_name text default null
+)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare new_couple_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Sign in is required'; end if;
+  if requested_role not in ('partner1', 'partner2') then raise exception 'Choose a valid partner role'; end if;
+  if length(trim(requested_code)) < 6 then raise exception 'Couple code must be at least 6 characters'; end if;
+  insert into public.couples (code) values (upper(trim(requested_code))) returning id into new_couple_id;
+  insert into public.profiles (id, couple_id, role, nickname)
+  values (auth.uid(), new_couple_id, requested_role, nullif(trim(display_name), ''));
+  return new_couple_id;
+end;
+$$;
+
+create or replace function public.join_couple_space(
+  requested_code text,
+  requested_role text,
+  display_name text default null
+)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare matched_couple_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Sign in is required'; end if;
+  if requested_role not in ('partner1', 'partner2') then raise exception 'Choose a valid partner role'; end if;
+  select id into matched_couple_id from public.couples where code = upper(trim(requested_code));
+  if matched_couple_id is null then raise exception 'Couple code was not found'; end if;
+  if exists (select 1 from public.profiles where couple_id = matched_couple_id and role = requested_role) then
+    raise exception 'That partner role is already linked';
+  end if;
+  insert into public.profiles (id, couple_id, role, nickname)
+  values (auth.uid(), matched_couple_id, requested_role, nullif(trim(display_name), ''));
+  return matched_couple_id;
+end;
+$$;
+
+grant execute on function public.is_couple_member(uuid) to authenticated;
+grant execute on function public.create_couple_space(text, text, text) to authenticated;
+grant execute on function public.join_couple_space(text, text, text) to authenticated;
+
+create policy "Members can view couple profiles" on public.profiles for select
+using (public.is_couple_member(couple_id));
+create policy "Users can update their profile" on public.profiles for update
+using (id = auth.uid()) with check (id = auth.uid() and public.is_couple_member(couple_id));
+create policy "Members can access their couple" on public.couples for all
+using (public.is_couple_member(id)) with check (public.is_couple_member(id));
+
+create policy "Members can access couple messages" on public.messages for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access couple bingo" on public.bingo_tiles for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access couple cards" on public.truth_or_dare_cards for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access couple quests" on public.challenges for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access couple dates" on public.date_ideas for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access private cards" on public.private_cards for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access fantasies" on public.fantasy_items for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access rewards" on public.rewards for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy "Members can access redemptions" on public.reward_redemptions for all using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 
 -- =========================================================
 -- SEED DATA INSERTIONS (Gautam & Shilpi)

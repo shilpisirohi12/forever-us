@@ -1,0 +1,108 @@
+'use client';
+
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { Heart, Loader2, LogIn, Mail, ShieldCheck, Users } from 'lucide-react';
+import { createBrowserSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
+
+export default function AuthGate({ children }: { children: ReactNode }) {
+  const [loading, setLoading] = useState(isSupabaseConfigured());
+  const [signedIn, setSignedIn] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [role, setRole] = useState<'partner1' | 'partner2'>('partner1');
+  const [mode, setMode] = useState<'join' | 'create'>('join');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadMembership = async () => {
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    setSignedIn(Boolean(user));
+    if (!user) {
+      setEnrolled(false);
+      return;
+    }
+    const { data } = await supabase.from('profiles').select('couple_id').eq('id', user.id).maybeSingle();
+    setEnrolled(Boolean(data?.couple_id));
+  };
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) return;
+    loadMembership().finally(() => setLoading(false));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadMembership().finally(() => setLoading(false));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const sendMagicLink = async (event: FormEvent) => {
+    event.preventDefault();
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !email.trim()) return;
+    setSubmitting(true);
+    setMessage('');
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setSubmitting(false);
+    setMessage(error ? error.message : 'Check your inbox for the secure sign-in link.');
+  };
+
+  const enroll = async (event: FormEvent) => {
+    event.preventDefault();
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase || !code.trim()) return;
+    setSubmitting(true);
+    setMessage('');
+    const { error } = await supabase.rpc(mode === 'create' ? 'create_couple_space' : 'join_couple_space', {
+      requested_code: code.trim(),
+      requested_role: role,
+      display_name: name.trim() || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    await loadMembership();
+  };
+
+  if (!isSupabaseConfigured() || (signedIn && enrolled)) return <>{children}</>;
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-10">
+      <section className="w-full rounded-3xl border border-rose-500/30 bg-zinc-900/90 p-6 shadow-2xl shadow-rose-950/30">
+        <div className="mb-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-600 to-pink-600"><Heart className="h-6 w-6 fill-white text-white" /></div>
+          <h1 className="mt-3 text-2xl font-black text-white">Forever Us</h1>
+          <p className="mt-1 text-sm text-zinc-400">A private space for the two of you.</p>
+        </div>
+
+        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-pink-400" /></div> : !signedIn ? (
+          <form onSubmit={sendMagicLink} className="space-y-4">
+            <label className="block text-xs font-bold text-zinc-300">Email address
+              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder="you@example.com" />
+            </label>
+            <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"><Mail className="h-4 w-4" />{submitting ? 'Sending…' : 'Email me a secure sign-in link'}</button>
+          </form>
+        ) : (
+          <form onSubmit={enroll} className="space-y-4">
+            <div className="grid grid-cols-2 rounded-xl border border-zinc-700 bg-zinc-950 p-1 text-xs font-bold"><button type="button" onClick={() => setMode('join')} className={`rounded-lg py-2 ${mode === 'join' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Join partner</button><button type="button" onClick={() => setMode('create')} className={`rounded-lg py-2 ${mode === 'create' ? 'bg-rose-600 text-white' : 'text-zinc-400'}`}>Create space</button></div>
+            <label className="block text-xs font-bold text-zinc-300">Your name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400" placeholder="Optional" /></label>
+            <label className="block text-xs font-bold text-zinc-300">{mode === 'create' ? 'Choose a private couple code' : 'Partner’s couple code'}<input required minLength={6} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 font-mono text-sm uppercase text-white outline-none focus:border-pink-400" placeholder="AT-LEAST-6-CHARS" /></label>
+            <label className="block text-xs font-bold text-zinc-300">I am<select value={role} onChange={(event) => setRole(event.target.value as 'partner1' | 'partner2')} className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-3 text-sm text-white outline-none focus:border-pink-400"><option value="partner1">Partner 1</option><option value="partner2">Partner 2</option></select></label>
+            <button disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{mode === 'create' ? <Users className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}{submitting ? 'Saving…' : mode === 'create' ? 'Create our private space' : 'Join our private space'}</button>
+          </form>
+        )}
+        {message && <p className="mt-4 rounded-xl border border-pink-500/25 bg-pink-950/30 p-3 text-center text-xs text-pink-200">{message}</p>}
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-zinc-500"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />Only authenticated couple members can access shared data.</p>
+      </section>
+    </main>
+  );
+}
