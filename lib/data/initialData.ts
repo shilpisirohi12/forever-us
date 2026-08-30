@@ -236,10 +236,7 @@ export const INITIAL_DATE_IDEAS: DateIdea[] = [
     budget: '$',
     mood: 'cozy',
     location: 'home',
-    completed: true,
-    completedAt: new Date(Date.now() - 172800000).toISOString(),
-    rating: 5,
-    notes: 'Amazing cheese board, we ended up talking until 2 AM!',
+    completed: false,
   },
   {
     id: 'd2',

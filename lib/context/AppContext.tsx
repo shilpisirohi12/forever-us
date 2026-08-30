@@ -118,8 +118,8 @@ const DEFAULT_COUPLE: Couple = {
   partner2Avatar: '👸',
   anniversaryDate: '2023-06-15',
   points: {
-    partner1: 175,
-    partner2: 140,
+    partner1: 0,
+    partner2: 0,
   },
   privatePin: '1234',
 };
@@ -162,6 +162,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load from localStorage on mount
   useEffect(() => {
     try {
+      // One-time reset requested for the live app's existing browser progress.
+      const shouldResetProgress = !localStorage.getItem('forever_progress_reset_v1');
       const savedCouple = localStorage.getItem('forever_couple');
       if (savedCouple) {
         const parsed = JSON.parse(savedCouple);
@@ -183,6 +185,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           parsed.partner2Avatar = '👸';
           localStorage.setItem('forever_couple', JSON.stringify(parsed));
         }
+        if (shouldResetProgress) {
+          parsed.points = { partner1: 0, partner2: 0 };
+          localStorage.setItem('forever_couple', JSON.stringify(parsed));
+        }
         setCouple(parsed);
       }
 
@@ -198,7 +204,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedHeatMeter) setHeatMeter(JSON.parse(savedHeatMeter));
 
       const savedBingo = localStorage.getItem('forever_bingo_cards');
-      if (savedBingo) setBingoCards(JSON.parse(savedBingo));
+      if (savedBingo) {
+        const parsed = JSON.parse(savedBingo);
+        const resetCards = shouldResetProgress
+          ? parsed.map((card: BingoCard) => ({ ...card, tiles: card.tiles.map((tile) => ({ ...tile, completedBy: [] })) }))
+          : parsed;
+        if (shouldResetProgress) localStorage.setItem('forever_bingo_cards', JSON.stringify(resetCards));
+        setBingoCards(resetCards);
+      }
 
       const savedDiceDecks = localStorage.getItem('forever_dice_decks');
       if (savedDiceDecks) setDiceDecks(JSON.parse(savedDiceDecks));
@@ -215,7 +228,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedChallenges) setChallenges(JSON.parse(savedChallenges));
 
       const savedDates = localStorage.getItem('forever_dates');
-      if (savedDates) setDateIdeas(JSON.parse(savedDates));
+      if (savedDates) {
+        const parsed = JSON.parse(savedDates);
+        const resetDates = shouldResetProgress
+          ? parsed.map((idea: DateIdea) => ({ ...idea, completed: false, completedAt: undefined, rating: undefined, notes: undefined }))
+          : parsed;
+        if (shouldResetProgress) localStorage.setItem('forever_dates', JSON.stringify(resetDates));
+        setDateIdeas(resetDates);
+      }
 
       const savedFantasies = localStorage.getItem('forever_fantasies');
       if (savedFantasies) setFantasyItems(JSON.parse(savedFantasies));
@@ -229,6 +249,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (isSupabaseConfigured()) {
         setIsCloudConnected(true);
       }
+      if (shouldResetProgress) localStorage.setItem('forever_progress_reset_v1', 'done');
     } catch {
       // Ignore storage read errors
     }
@@ -252,6 +273,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!profile?.couple_id) return;
     const { data: cloudCouple } = await supabase.from('couples').select('*').eq('id', profile.couple_id).maybeSingle();
     if (!cloudCouple) return;
+    if (!localStorage.getItem('forever_cloud_progress_reset_v1')) {
+      const { error } = await supabase
+        .from('couples')
+        .update({ partner1_points: 0, partner2_points: 0 })
+        .eq('id', profile.couple_id);
+      if (!error) {
+        cloudCouple.partner1_points = 0;
+        cloudCouple.partner2_points = 0;
+        localStorage.setItem('forever_cloud_progress_reset_v1', 'done');
+      }
+    }
     const nextCouple: Couple = {
       id: cloudCouple.id,
       code: cloudCouple.code,
